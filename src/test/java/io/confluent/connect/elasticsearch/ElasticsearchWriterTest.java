@@ -19,6 +19,7 @@ package io.confluent.connect.elasticsearch;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.kafka.common.protocol.types.Field;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -260,24 +261,92 @@ public class ElasticsearchWriterTest extends ElasticsearchSinkTestBase {
   @Test
   public void testRoutingField() throws Exception {
     boolean ignoreKey = false;
-    boolean ignoreSchema = false;
-
-    Schema mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build();
+    boolean ignoreSchema = true;
 
     String routingFieldName = "organizationId";
-    String routingFieldValue = "1";
-    Map<String, String> map = new HashMap<>();
+    Long routingFieldValue = 1L;
+    Map<String, Object> map = new HashMap<>();
     map.put(routingFieldName, routingFieldValue);
     map.put("firstName", "Echo");
-    map.put("lastname", "Xu");
+    map.put("lastName", "Xu");
 
-    SinkRecord sinkRecord = new SinkRecord(TOPIC, PARTITION, Schema.STRING_SCHEMA, key, mapSchema, map, 0);
+    SinkRecord sinkRecord = new SinkRecord(TOPIC, PARTITION, null, key, null, map, 0);
 
     ElasticsearchWriter writer = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
     writeDataAndRefresh(writer, Collections.singletonList(sinkRecord));
 
     Collection<?> expectedRecords = Collections.singletonList(new ObjectMapper().writeValueAsString(map));
-    verifySearchResults(expectedRecords, TOPIC, routingFieldValue, ignoreKey, ignoreSchema);
+    verifySearchResults(expectedRecords, TOPIC, routingFieldValue.toString(), ignoreKey, ignoreSchema);
+  }
+
+  @Test
+  public void testIndexThenUpdate() throws Exception {
+    boolean ignoreKey = false;
+    boolean ignoreSchema = true;
+
+    String routingFieldName = "organizationId";
+    Long routingFieldValue = 1L;
+
+    Map<String, Object> contact = new HashMap<>();
+    contact.put(routingFieldName, routingFieldValue);
+    contact.put("firstName", "Echo");
+    contact.put("lastName", "Xu");
+
+    SinkRecord sinkRecord = new SinkRecord(TOPIC, PARTITION, null, key, null, contact, 0);
+
+    ElasticsearchWriter writer = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
+    writeDataAndRefresh(writer, Collections.singletonList(sinkRecord));
+
+    Map<String, Object> contactUpdate = new HashMap<>();
+    contactUpdate.put(routingFieldName, routingFieldValue);
+
+    // for routing
+    contactUpdate.put(routingFieldName, routingFieldValue);
+
+    Map<String, String> doc = new HashMap<>();
+    doc.put("firstName", "Echo-updated");
+
+    contactUpdate.put("doc", doc);
+
+    SinkRecord sinkRecordForUpdate = new SinkRecord(TOPIC, PARTITION, null, key, null, contactUpdate, 0);
+
+    ElasticsearchWriter writerForUpdate = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
+    writeDataAndRefresh(writerForUpdate, Collections.singletonList(sinkRecordForUpdate));
+
+    contact.put("firstName", "Echo-updated");
+
+    Collection<?> expectedRecords = Collections.singletonList(new ObjectMapper().writeValueAsString(contact));
+    verifySearchResults(expectedRecords, TOPIC, routingFieldValue.toString(), ignoreKey, ignoreSchema);
+  }
+
+  @Test
+  public void testUpsert() throws Exception {
+    boolean ignoreKey = false;
+    boolean ignoreSchema = true;
+
+    String routingFieldName = "organizationId";
+    Long routingFieldValue = 1L;
+
+    Map<String, Object> map = new HashMap<>();
+    map.put(routingFieldName, routingFieldValue);
+
+    // for routing
+    map.put(routingFieldName, routingFieldValue);
+    map.put("doc_as_upsert", true);
+
+
+    Map<String, String> doc = new HashMap<>();
+    doc.put("firstName", "Echo-updated");
+
+    map.put("doc", doc);
+
+    SinkRecord sinkRecord = new SinkRecord(TOPIC, PARTITION, null, key, null, map, 0);
+
+    ElasticsearchWriter writer = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
+    writeDataAndRefresh(writer, Collections.singletonList(sinkRecord));
+
+    Collection<?> expectedRecords = Collections.singletonList("{\"firstName\":\"Echo-updated\"}");
+    verifySearchResults(expectedRecords, TOPIC, routingFieldValue.toString(), ignoreKey, ignoreSchema);
   }
 
   @Test

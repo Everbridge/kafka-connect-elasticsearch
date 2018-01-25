@@ -48,7 +48,7 @@ public class ElasticsearchWriter {
   private final Set<String> ignoreSchemaTopics;
   private final Map<String, String> topicToIndexMap;
   private final long flushTimeoutMs;
-  private final BulkProcessor<IndexableRecord, ?> bulkProcessor;
+  private final BulkProcessor<ActionableRecord, ?> bulkProcessor;
   private final boolean dropInvalidMessage;
   private String routingFieldName;
   private final DataConverter converter;
@@ -239,29 +239,29 @@ public class ElasticsearchWriter {
         existingMappings.add(index);
       }
 
-      final IndexableRecord indexableRecord = tryGetIndexableRecord(
+      final ActionableRecord actionableRecord = tryGetIndexableRecord(
               sinkRecord,
               index,
               ignoreKey,
               ignoreSchema);
 
-      if (indexableRecord != null) {
-        bulkProcessor.add(indexableRecord, flushTimeoutMs);
+      if (actionableRecord != null) {
+        bulkProcessor.add(actionableRecord, flushTimeoutMs);
       }
 
     }
   }
 
-  private IndexableRecord tryGetIndexableRecord(
+  private ActionableRecord tryGetIndexableRecord(
           SinkRecord sinkRecord,
           String index,
           boolean ignoreKey,
           boolean ignoreSchema) {
 
-    IndexableRecord indexableRecord = null;
+    ActionableRecord actionableRecord = null;
 
     try {
-      indexableRecord = converter.convertRecord(
+      actionableRecord = converter.convertRecord(
               sinkRecord,
               index,
               type,
@@ -280,7 +280,7 @@ public class ElasticsearchWriter {
         throw convertException;
       }
     }
-    return indexableRecord;
+    return actionableRecord;
   }
 
   public void flush() {

@@ -32,7 +32,7 @@ import io.searchbox.client.JestClient;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.BulkResult;
 
-public class BulkIndexingClient implements BulkClient<IndexableRecord, Bulk> {
+public class BulkIndexingClient implements BulkClient<ActionableRecord, Bulk> {
 
   private static final Logger LOG = LoggerFactory.getLogger(BulkIndexingClient.class);
 
@@ -45,10 +45,10 @@ public class BulkIndexingClient implements BulkClient<IndexableRecord, Bulk> {
   }
 
   @Override
-  public Bulk bulkRequest(List<IndexableRecord> batch) {
+  public Bulk bulkRequest(List<ActionableRecord> batch) {
     final Bulk.Builder builder = new Bulk.Builder();
-    for (IndexableRecord record : batch) {
-      builder.addAction(record.toIndexRequest());
+    for (ActionableRecord record : batch) {
+      builder.addAction(record.toActionRequest());
     }
     return builder.build();
   }
