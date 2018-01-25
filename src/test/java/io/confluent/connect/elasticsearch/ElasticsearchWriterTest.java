@@ -292,10 +292,7 @@ public class ElasticsearchWriterTest extends ElasticsearchSinkTestBase {
     contact.put("firstName", "Echo");
     contact.put("lastName", "Xu");
 
-    SinkRecord sinkRecord = new SinkRecord(TOPIC, PARTITION, null, key, null, contact, 0);
-
-    ElasticsearchWriter writer = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
-    writeDataAndRefresh(writer, Collections.singletonList(sinkRecord));
+    SinkRecord sinkRecordForIndex = new SinkRecord(TOPIC, PARTITION, null, key, null, contact, 0);
 
     Map<String, Object> contactUpdate = new HashMap<>();
     contactUpdate.put(routingFieldName, routingFieldValue);
@@ -310,8 +307,8 @@ public class ElasticsearchWriterTest extends ElasticsearchSinkTestBase {
 
     SinkRecord sinkRecordForUpdate = new SinkRecord(TOPIC, PARTITION, null, key, null, contactUpdate, 0);
 
-    ElasticsearchWriter writerForUpdate = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
-    writeDataAndRefresh(writerForUpdate, Collections.singletonList(sinkRecordForUpdate));
+    ElasticsearchWriter writer = initWriter(client, ignoreKey, ignoreSchema, routingFieldName);
+    writeDataAndRefresh(writer, Arrays.asList(sinkRecordForIndex, sinkRecordForUpdate));
 
     contact.put("firstName", "Echo-updated");
 
