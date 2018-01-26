@@ -90,7 +90,7 @@ public class DataConverter {
     }
   }
 
-  public IndexableRecord convertRecord(
+  public ActionableRecord convertRecord(
       SinkRecord record,
       String index,
       String type,
@@ -139,11 +139,15 @@ public class DataConverter {
         throw new ConnectException("routing field should be primitive or String");
       }
     }
+    ActionableRecord.ActionType actionType = ActionableRecord.ActionType.Index;
+    if (value instanceof HashMap && ((HashMap) value).get("doc") != null) {
+      actionType = ActionableRecord.ActionType.Update;
+    }
 
     byte[] rawJsonPayload = JSON_CONVERTER.fromConnectData(record.topic(), schema, value);
     final String payload = new String(rawJsonPayload, StandardCharsets.UTF_8);
     final Long version = ignoreKey ? null : record.kafkaOffset();
-    return new IndexableRecord(new Key(index, type, id), routing, payload, version);
+    return new ActionableRecord(new Key(index, type, id), routing, payload, version, actionType);
   }
 
   // We need to pre process the Kafka Connect schema before converting to JSON as Elasticsearch

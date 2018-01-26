@@ -121,6 +121,7 @@ public class ElasticsearchSinkTestBase extends ESIntegTestCase {
     final JsonArray rawHits = result.getJsonObject().getAsJsonObject("hits").getAsJsonArray("hits");
 
     assertEquals(records.size(), rawHits.size());
+    logger.info("raw hits" + rawHits.size());
 
     Map<String, String> hits = new HashMap<>();
     for (int i = 0; i < rawHits.size(); ++i) {
@@ -136,8 +137,8 @@ public class ElasticsearchSinkTestBase extends ESIntegTestCase {
 
     for (Object record : records) {
       if (record instanceof SinkRecord) {
-        IndexableRecord indexableRecord = converter.convertRecord((SinkRecord) record, index, TYPE, null, ignoreKey, ignoreSchema);
-        assertEquals(indexableRecord.payload, hits.get(indexableRecord.key.id));
+        ActionableRecord actionableRecord = converter.convertRecord((SinkRecord) record, index, TYPE, null, ignoreKey, ignoreSchema);
+        assertEquals(actionableRecord.payload, hits.get(actionableRecord.key.id));
       } else {
         assertEquals(record, hits.get("key"));
       }
